@@ -172,47 +172,55 @@ public class Paises extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnAñadirPaisActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAñadirPaisActionPerformed
-        String nombrePais = inputTextNombrePais.getText();
-        int numeroHabitantes = Integer.parseInt(inputTextNumHabitantes.getText());
-        String nombreContinente = (String) comboBoxContinentes.getSelectedItem();
+        try {
+            String nombrePais = inputTextNombrePais.getText();
+            int numeroHabitantes = Integer.parseInt(inputTextNumHabitantes.getText());
+            String nombreContinente = (String) comboBoxContinentes.getSelectedItem();
 
-        if (managerDatabase.runMongoDatabase()) {
+            if (managerDatabase.runMongoDatabase()) {
 
-            // Buscar continente por nombre
-            Continente continente = managerDatabase.getListaDeContinentes()
-                    .stream()
-                    .filter(c -> c.getName().equalsIgnoreCase(nombreContinente))
-                    .findFirst()
-                    .orElse(null);
+                Continente continente = managerDatabase.getListaDeContinentes()
+                        .stream()
+                        .filter(c -> c.getName().equalsIgnoreCase(nombreContinente))
+                        .findFirst()
+                        .orElse(null);
 
-            if (continente != null) {
+                if (continente != null) {
 
-                boolean existe = managerDatabase.getListaPaises().stream()
-                        .anyMatch(c -> c.getNombrePais().equalsIgnoreCase(nombrePais));
+                    if (nombrePais.contains(" ") || inputTextNumHabitantes.getText().contains(" ")) {
+                        JOptionPane.showMessageDialog(this, "Has añadido espacios no validos quitalos");
+                    } else {
 
-                if (!existe) {
+                        boolean existe = managerDatabase.getListaPaises().stream()
+                                .anyMatch(c -> c.getNombrePais().equalsIgnoreCase(nombrePais));
 
-                    String continenteId = managerDatabase.getIdFromContinente(nombreContinente);
+                        if (!existe) {
 
-                    Pais pais = new Pais(numeroHabitantes, nombrePais, continenteId);
+                            String continenteId = managerDatabase.getIdFromContinente(nombreContinente);
 
-                    managerDatabase.añadirPais(pais);
-                    this.inicializarComboBoxPaises();
+                            Pais pais = new Pais(numeroHabitantes, nombrePais, continenteId);
+
+                            managerDatabase.añadirPais(pais);
+                            this.inicializarComboBoxPaises();
+
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Has añadido uno ya existente");
+                        }
+                    }
 
                 } else {
-                    JOptionPane.showMessageDialog(this, "Has añadido uno ya existente.");
+                    JOptionPane.showMessageDialog(this, "No se encontró el continente.");
                 }
 
+                managerDatabase.closeMongoDatabase();
+
             } else {
-                JOptionPane.showMessageDialog(this, "No se encontró el continente.");
+                JOptionPane.showMessageDialog(this, "Error con la database");
             }
 
-            managerDatabase.closeMongoDatabase();
-
-        } else {
-            JOptionPane.showMessageDialog(this, "Error con la database");
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Error: El campo número de habitantes solo acepta números.");
         }
-
     }//GEN-LAST:event_btnAñadirPaisActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
@@ -232,8 +240,8 @@ public class Paises extends javax.swing.JDialog {
                     .orElse(null);
 
             if (pais != null) {
-                    managerDatabase.deletePais(pais);
-                    this.inicializarComboBoxPaises();
+                managerDatabase.deletePais(pais);
+                this.inicializarComboBoxPaises();
             } else {
                 JOptionPane.showMessageDialog(this, "No se encontró el continente.");
             }
