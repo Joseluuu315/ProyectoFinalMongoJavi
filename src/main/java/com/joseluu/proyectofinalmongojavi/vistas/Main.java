@@ -125,7 +125,18 @@ public class Main extends javax.swing.JFrame {
     }//GEN-LAST:event_jMenuItem2ActionPerformed
 
     private void jMenuItem3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem3ActionPerformed
-        new Consultas(this, true).setVisible(true);
+        if (managerDatabase.runMongoDatabase()) {
+            List<Continente> listaContinente = managerDatabase.getListaDeContinentes();
+            if (!listaContinente.isEmpty()) {
+                new Consultas(this, true).setVisible(true);
+            } else {
+                JOptionPane.showMessageDialog(this, "Lista vacia error generado");
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Error con la base de datos");
+        }
+
+        
     }//GEN-LAST:event_jMenuItem3ActionPerformed
 
     /**
