@@ -125,6 +125,8 @@ public class DatabaseManager {
                 Pais pais = new Pais(0, "", "");
 
                 pais.setNombrePais(doc.getString("name"));
+                pais.setNumHabitantes(doc.getInteger("numberPeople"));
+                pais.setContinenteId(doc.getString("continenteId"));
 
                 lista.add(pais);
             }
@@ -157,6 +159,22 @@ public class DatabaseManager {
             System.out.println("Error obteniendo id del continente: " + e.getMessage());
         }
 
+        return id;
+    }
+
+    public String getIdContinentePuro(String nombreContinente) {
+        String id = null;
+        try {
+            MongoCollection<Document> collection = database.getCollection("continentes");
+            Document continente = collection.find(Filters.eq("name", nombreContinente)).first();
+
+            if (continente != null) {
+                // toHexString() extrae solo los 24 caracteres (ej: 698e1de2...)
+                id = continente.getObjectId("_id").toHexString();
+            }
+        } catch (Exception e) {
+            System.out.println("Error obteniendo id del continente: " + e.getMessage());
+        }
         return id;
     }
 
