@@ -4,11 +4,18 @@
  */
 package com.joseluu.proyectofinalmongojavi.vistas;
 
+import com.joseluu.proyectofinalmongojavi.controlador.DatabaseManager;
+import com.joseluu.proyectofinalmongojavi.entidad.Pais;
+import java.util.List;
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author Josel
  */
 public class Consultas extends javax.swing.JDialog {
+
+    DatabaseManager managerDatabase;
 
     /**
      * Creates new form Consultas
@@ -16,6 +23,18 @@ public class Consultas extends javax.swing.JDialog {
     public Consultas(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+        managerDatabase = new DatabaseManager();
+        this.inicializarComboBoxContinente();
+    }
+
+    public void inicializarComboBoxContinente() {
+
+        managerDatabase.runMongoDatabase();
+        comboBoxContinente.removeAllItems();
+        managerDatabase.getListaDeContinentes()
+                .forEach(c -> comboBoxContinente.addItem(c.getName()));
+
+        managerDatabase.closeMongoDatabase();
     }
 
     /**
@@ -32,17 +51,27 @@ public class Consultas extends javax.swing.JDialog {
         jLabel2 = new javax.swing.JLabel();
         inputNumeroDeHabitantes = new javax.swing.JTextField();
         jLabel3 = new javax.swing.JLabel();
-        jTextField1 = new javax.swing.JTextField();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTextArea1 = new javax.swing.JTextArea();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
         jLabel1.setText("Consultas");
 
         comboBoxContinente.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        comboBoxContinente.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                comboBoxContinenteItemStateChanged(evt);
+            }
+        });
 
         jLabel2.setText("Numero de habitantes");
 
         jLabel3.setText("Paises y habitantes");
+
+        jTextArea1.setColumns(20);
+        jTextArea1.setRows(5);
+        jScrollPane1.setViewportView(jTextArea1);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -51,7 +80,7 @@ public class Consultas extends javax.swing.JDialog {
             .addGroup(layout.createSequentialGroup()
                 .addGap(46, 46, 46)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 624, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 629, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 163, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -61,7 +90,7 @@ public class Consultas extends javax.swing.JDialog {
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 163, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(inputNumeroDeHabitantes, javax.swing.GroupLayout.PREFERRED_SIZE, 213, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(96, Short.MAX_VALUE))
+                .addContainerGap(91, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -76,13 +105,64 @@ public class Consultas extends javax.swing.JDialog {
                     .addComponent(inputNumeroDeHabitantes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(43, 43, 43)
                 .addComponent(jLabel3)
-                .addGap(33, 33, 33)
-                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(53, Short.MAX_VALUE))
+                .addGap(18, 18, 18)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 278, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(30, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void comboBoxContinenteItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_comboBoxContinenteItemStateChanged
+        if (comboBoxContinente.getSelectedIndex() == -1 || !this.isVisible()) {
+            return;
+        }
+
+        String nombreContinente = (String) comboBoxContinente.getSelectedItem();
+        jTextArea1.setText("");
+        inputNumeroDeHabitantes.setText("0");
+        int sumaTotalHabitantes = 0;
+
+        try {
+            if (managerDatabase.runMongoDatabase()) {
+                String idBuscado = managerDatabase.getIdContinentePuro(nombreContinente);
+
+                if (idBuscado != null) {
+                    List<Pais> listaPaises = managerDatabase.getListaPaises();
+
+                    if (listaPaises == null || listaPaises.isEmpty()) {
+                        System.out.println("ERROR: La lista de países está vacia.");
+                    } else {
+                        List<Pais> listaFiltrada = listaPaises.stream()
+                                .filter(p -> {
+                                    if (p.getContinenteId() == null) {
+                                        return false;
+                                    }
+                                    String idPais = p.getContinenteId().trim();
+                                    return idPais.equals(idBuscado.trim());
+                                })
+                                .sorted((p1, p2) -> p1.getNombrePais().compareToIgnoreCase(p2.getNombrePais()))
+                                .toList();
+
+                        if (!listaFiltrada.isEmpty()) {
+                            StringBuilder sb = new StringBuilder();
+                            for (Pais p : listaFiltrada) {
+                                sb.append(p.getNombrePais()).append(" | ").append(p.getNumHabitantes()).append("\n");
+                                sumaTotalHabitantes += p.getNumHabitantes();
+                            }
+                            jTextArea1.setText(sb.toString());
+                            inputNumeroDeHabitantes.setText(String.valueOf(sumaTotalHabitantes));
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Filtro fallido: No hay coincidencias para el ID " + idBuscado);
+                        }
+                    }
+                }
+                managerDatabase.closeMongoDatabase();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }//GEN-LAST:event_comboBoxContinenteItemStateChanged
 
     /**
      * @param args the command line arguments
@@ -132,6 +212,7 @@ public class Consultas extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JTextField jTextField1;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTextArea jTextArea1;
     // End of variables declaration//GEN-END:variables
 }
